@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { KK_TRACKS, KK_PLAYLIST_ID, KKTrack, formatRawYouTubeTitle } from '../data/kkData';
+import { PLAYLIST_TRACKS as KK_TRACKS, KK_PLAYLIST_ID, KKTrack, findCuratedTrack, formatRawYouTubeTitle } from '../data/kkData';
 
 declare global {
   interface Window {
@@ -12,7 +12,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(333);
+  const [duration, setDuration] = useState<number>(KK_TRACKS[0].approxDurationSec);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
   const [currentTrack, setCurrentTrack] = useState<KKTrack>(KK_TRACKS[0]);
   const [volume, setVolumeState] = useState<number>(85);
@@ -21,6 +21,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   const [tapeCounter, setTapeCounter] = useState<number>(1);
   const [isSeeking, setIsSeeking] = useState<boolean>(false);
   const [rawVideoTitle, setRawVideoTitle] = useState<string>('');
+  const [playbackError, setPlaybackError] = useState('');
 
   const playerRef = useRef<any>(null);
   const timerRef = useRef<number | null>(null);
@@ -40,23 +41,39 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
     }
 
     let videoTitle = '';
+    let activeVideoId = '';
     if (typeof playerRef.current.getVideoData === 'function') {
       const data = playerRef.current.getVideoData();
       if (data && data.title) {
         videoTitle = data.title;
         setRawVideoTitle(videoTitle);
       }
+      if (data?.video_id) {
+        activeVideoId = data.video_id;
+      }
     }
 
+    // YouTube can emit an empty payload while replacing the active video.
+    if (!activeVideoId && !videoTitle) return;
     // Format into strict 'Song Name — Movie/Album'
     const formattedMeta = formatRawYouTubeTitle(videoTitle, pIndex);
-    const existingCurated = KK_TRACKS[pIndex % KK_TRACKS.length];
+    const matchedCurated = KK_TRACKS.find(track => track.videoId === activeVideoId) ?? findCuratedTrack(videoTitle);
+    const indexedFallback = KK_TRACKS[pIndex % KK_TRACKS.length];
 
+    const videoId = activeVideoId || matchedCurated?.videoId || indexedFallback.videoId;
     const updatedTrack: KKTrack = {
-      ...existingCurated,
-      songName: formattedMeta.songName || existingCurated.songName,
-      movieOrAlbum: formattedMeta.movieOrAlbum || existingCurated.movieOrAlbum,
-      formattedTitle: formattedMeta.formattedTitle || `${existingCurated.songName} — ${existingCurated.movieOrAlbum}`,
+      // Never attach lyrics by playlist position. The title must identify a
+      // curated song; otherwise the track gets an unknown id and shows no lyrics.
+      ...(matchedCurated ?? indexedFallback),
+      id: matchedCurated?.id ?? `unmatched-${activeVideoId || pIndex}`,
+      songName: matchedCurated?.songName ?? formattedMeta.songName,
+      movieOrAlbum: matchedCurated?.movieOrAlbum ?? formattedMeta.movieOrAlbum,
+      formattedTitle: matchedCurated?.formattedTitle ?? formattedMeta.formattedTitle,
+      videoId,
+      // A YouTube thumbnail is the reliable fallback artwork for every playlist item.
+      // It prevents a stale poster when the user changes tracks, while allowing a
+      // future curated movie-poster URL to replace it per track.
+      artworkUrl: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : (matchedCurated?.artworkUrl ?? indexedFallback.artworkUrl),
     };
 
     setCurrentTrackIndex(pIndex);
@@ -82,6 +99,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
 
       try {
         playerRef.current = new window.YT.Player('yt-audio-container', {
+          videoId: KK_TRACKS[0].videoId,
           height: '100',
           width: '100',
           playerVars: {
@@ -131,6 +149,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
               }
 
               if (state === 1) {
+                setPlaybackError('');
                 // PLAYING
                 setIsPlaying(true);
                 setIsBuffering(false);
@@ -160,8 +179,10 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
               }
             },
             onError: (err: any) => {
-              console.warn('YouTube playlist error, falling back gracefully:', err);
+              console.warn('YouTube playback error code:', err.data);
+              setIsPlaying(false);
               setIsBuffering(false);
+              setPlaybackError([101, 150].includes(err.data) ? 'This recording cannot play in embedded players.' : 'YouTube could not play this recording.');
             },
           },
         });
@@ -213,18 +234,8 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
               }
             }
           } catch {
-            setCurrentTime((prev) => prev + 0.2);
+            // Keep the last confirmed time: invented time drifts from vocals.
           }
-        } else {
-          // Virtual timer tick
-          setCurrentTime((prev) => {
-            const targetDur = currentTrack.approxDurationSec || 300;
-            if (prev >= targetDur) {
-              handleNextTrack();
-              return 0;
-            }
-            return prev + 0.2;
-          });
         }
 
         // Tape mechanical counter
@@ -246,7 +257,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   }, [isPlaying, isSeeking, currentTrack, syncTrackFromPlayer]);
 
   const play = useCallback(() => {
-    setIsPlaying(true);
+    setPlaybackError('');
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
       try {
         playerRef.current.playVideo();
@@ -259,6 +270,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   }, []);
 
   const pause = useCallback(() => {
+    pendingPlayRef.current = false;
     setIsPlaying(false);
     setIsBuffering(false);
     if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
@@ -334,6 +346,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   }, [isMuted, volume]);
 
   const handleNextTrack = useCallback(() => {
+    setPlaybackError('');
     setCurrentTime(0);
     if (playerRef.current && typeof playerRef.current.nextVideo === 'function') {
       try {
@@ -362,6 +375,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   }, [syncTrackFromPlayer]);
 
   const handlePrevTrack = useCallback(() => {
+    setPlaybackError('');
     setCurrentTime(0);
     if (playerRef.current && typeof playerRef.current.previousVideo === 'function') {
       try {
@@ -389,21 +403,20 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
   }, [syncTrackFromPlayer]);
 
   const playTrackAtIndex = useCallback((index: number) => {
+    setPlaybackError('');
     const validIndex = Math.max(0, Math.min(index, KK_TRACKS.length - 1));
     setCurrentTrackIndex(validIndex);
     lastIndexRef.current = validIndex;
     setCurrentTrack(KK_TRACKS[validIndex]);
+    setDuration(KK_TRACKS[validIndex].approxDurationSec);
     setCurrentTime(0);
 
     if (playerRef.current && typeof playerRef.current.playVideoAt === 'function') {
       try {
         playerRef.current.playVideoAt(validIndex);
-        setIsPlaying(true);
       } catch (err) {
         console.warn('playVideoAt invocation:', err);
       }
-    } else {
-      setIsPlaying(true);
     }
   }, []);
 
@@ -427,6 +440,7 @@ export function useYouTubePlayer(playlistId = KK_PLAYLIST_ID) {
     currentTrack,
     currentTrackIndex,
     rawVideoTitle,
+    playbackError,
     playlist: KK_TRACKS,
     volume,
     isMuted,

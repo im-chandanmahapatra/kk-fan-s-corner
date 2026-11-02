@@ -6,16 +6,19 @@ import { NostalgicPlayer } from './components/NostalgicPlayer';
 import { SpatialAlbumArt } from './components/SpatialAlbumArt';
 import { AppleLyricsOverlay } from './components/AppleLyricsOverlay';
 import { ConcertAtmosphere } from './components/ConcertAtmosphere';
+import { TheatreStage } from './components/TheatreStage';
+import { AnimatedBackdrop } from './components/AnimatedBackdrop';
 import { KK_PLAYLIST_ID } from './data/kkData';
 
 export default function App() {
-  const [rainMode, setRainMode] = useState<'gentle' | 'monsoon' | 'off'>('gentle');
   const [isTheatreMode, setIsTheatreMode] = useState<boolean>(false);
   const [showTributeModal, setShowTributeModal] = useState<boolean>(false);
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
+  const [isDawnMode, setIsDawnMode] = useState<boolean>(false);
 
   const {
     isPlaying,
+    playbackError,
     isBuffering,
     isSeeking,
     currentTime,
@@ -36,6 +39,7 @@ export default function App() {
     prevTrack,
     playTrackAtIndex,
   } = useYouTubePlayer(KK_PLAYLIST_ID);
+
 
   // Dynamic Premium Favicon & Document Title
   useEffect(() => {
@@ -69,7 +73,7 @@ export default function App() {
   // Global Keyboard Shortcuts (Space = Play/Pause, Arrows = Navigation, L = Lyrics, T = Theatre, M = Mute, Esc = Close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+      if (e.repeat || ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes((e.target as HTMLElement)?.tagName) || (e.target as HTMLElement)?.isContentEditable) {
         return;
       }
 
@@ -80,6 +84,10 @@ export default function App() {
         }
         if (showLyrics) {
           setShowLyrics(false);
+          return;
+        }
+        if (isTheatreMode) {
+          setIsTheatreMode(false);
           return;
         }
       }
@@ -112,10 +120,10 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, togglePlay, nextTrack, prevTrack, toggleMute, showTributeModal, showLyrics]);
+  }, [isPlaying, togglePlay, nextTrack, prevTrack, toggleMute, showTributeModal, showLyrics, isTheatreMode]);
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-stone-100 relative overflow-x-hidden pb-40 font-['Manrope',sans-serif]">
+    <div className="listening-app bg-[#07070a] text-stone-100 font-['Manrope',sans-serif]">
       {/* Hidden YouTube IFrame Audio Engine with Playlist Architecture */}
       <div 
         id="yt-audio-container" 
@@ -126,7 +134,7 @@ export default function App() {
       {/* Cinematic Dark Mesh Gradient & Dynamic Ambient Aura Crossfade */}
       <ConcertAtmosphere 
         isPlaying={isPlaying} 
-        rainMode={rainMode} 
+        rainMode="off"
         ambientGlow={currentTrack.ambientGlow}
         isTheatreMode={isTheatreMode}
       />
@@ -144,7 +152,7 @@ export default function App() {
             </span>
           </div>
 
-          {/* Action Cluster: Tribute About Modal & Master Play CTA */}
+          {/* Action Cluster */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Ambient Tribute / About Modal Trigger */}
             <button
@@ -178,33 +186,32 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-3 sm:px-8 pt-5 sm:pt-8 relative z-10">
-        {/* Minimalist Low-Opacity Header Title (Clean, Text-Light Hero Anchor) */}
-        <div className={`text-center mb-3 sm:mb-5 max-w-3xl mx-auto transition-all duration-700 ease-in-out ${
-          isTheatreMode ? 'opacity-20 scale-95' : 'opacity-100 scale-100 reveal-hero'
-        }`}>
-          <p className="text-[11px] sm:text-xs font-mono tracking-[0.25em] text-stone-500 uppercase mb-1.5 select-none">
-            In Eternal Honor of Krishnakumar Kunnath
-          </p>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white font-editorial drop-shadow-lg leading-tight">
-            KK Fan&apos;s Corner
-          </h1>
-        </div>
-
-        {/* PRIMARY HERO: SPATIAL ALBUM ART CENTERPIECE (TEXT-FREE MINIMALIST 1:1 CENTERPIECE) */}
-        <div className={`reveal-lyrics transition-all duration-700 ease-in-out my-4 sm:my-8 relative z-10 ${
-          isTheatreMode ? 'scale-[1.03] shadow-[0_0_90px_rgba(245,158,11,0.2)]' : ''
-        }`}>
-          <SpatialAlbumArt
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            showLyrics={showLyrics}
-            isTheatreMode={isTheatreMode}
-          />
-        </div>
-      </main>
+      {isTheatreMode ? (
+        <TheatreStage
+          duration={duration}
+          currentTrack={currentTrack}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          onTogglePlay={togglePlay}
+          onSeek={seekTo}
+        />
+      ) : (
+        <main className="home-stage relative z-10">
+          <section
+            className="home-scene relative overflow-hidden border border-white/10"
+          >
+            <AnimatedBackdrop isDawnMode={isDawnMode} onChangeMode={setIsDawnMode} ambientGlow={currentTrack.ambientGlow} />
+            <div className="scene-heading absolute left-4 right-4 z-10 mx-auto max-w-3xl text-center">
+              <p className="text-[10px] sm:text-xs font-mono tracking-[0.25em] text-white/65 uppercase mb-2 select-none">In Eternal Honor of Krishnakumar Kunnath</p>
+              <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white font-editorial drop-shadow-lg leading-tight">KK Fan&apos;s Corner</h1>
+              <p className="mt-2 text-xs sm:text-sm text-white/65">{isDawnMode ? 'First light, old memories.' : 'A quiet sky for timeless melodies.'}</p>
+            </div>
+            <div className="corner-art absolute bottom-5 right-5 z-10">
+              <SpatialAlbumArt currentTrack={currentTrack} isPlaying={isPlaying} onTogglePlay={togglePlay} showLyrics={showLyrics} />
+            </div>
+          </section>
+        </main>
+      )}
 
       {/* 2. THE AMBIENT TRIBUTE MODAL */}
       {showTributeModal && (
@@ -266,9 +273,14 @@ export default function App() {
 
       {/* 3. APPLE-GRADE FULL-VIEWPORT GLASS LYRICS OVERLAY */}
       <AppleLyricsOverlay
+        artist={currentTrack.artist}
+        songName={currentTrack.songName}
+        album={currentTrack.movieOrAlbum}
+        duration={duration}
         isOpen={showLyrics}
         onClose={() => setShowLyrics(false)}
         trackId={currentTrack.id}
+        videoId={currentTrack.videoId}
         formattedTitle={currentTrack.formattedTitle}
         currentTime={currentTime}
         isPlaying={isPlaying}
@@ -279,6 +291,7 @@ export default function App() {
 
       {/* ULTRA-PREMIUM DYNAMIC ISLAND AUDIO CONSOLE WITH UP NEXT DRAWER */}
       <NostalgicPlayer
+        playbackError={playbackError}
         isPlaying={isPlaying}
         isBuffering={isBuffering}
         isSeeking={isSeeking}

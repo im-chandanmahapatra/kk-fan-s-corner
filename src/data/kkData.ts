@@ -19,6 +19,8 @@ export interface KKTrack {
   mood: string;
   ambientGlow: AmbientGlow;
   videoId?: string;
+  /** Resolved from the active YouTube video so artwork always changes with playback. */
+  artworkUrl?: string;
 }
 
 export interface PolaroidMemory {
@@ -325,6 +327,77 @@ export const KK_TRACKS: KKTrack[] = [
   },
 ];
 
+// Snapshot of the user's public playlist, verified 2026-11-02. Video identity,
+// rather than the unrelated editorial catalog order, drives queue and artwork.
+const PLAYLIST_RECORDINGS: [string, string, string, string, number][] = [
+  ['U2QNhsAgIIE', 'Dil Ibaadat', 'Tum Mile', 'KK', 334],
+  ['-FP2Cmc7zj4', 'Labon Ko', 'Bhool Bhulaiyaa', 'KK', 336],
+  ['PkhfKq9m0Uo', 'Tujhe Sochta Hoon', 'Jannat 2', 'KK', 316],
+  ['7KKVb0_IdD4', 'Aankhon Mein Teri', 'Om Shanti Om', 'KK', 261],
+  ['-8C_2BBVWk8', 'Zara Sa', 'Jannat', 'KK', 308],
+  ['cGNcjqXe87U', 'Tu Hi Meri Shab Hai', 'Gangster', 'KK', 388],
+  ['UlacMvx_VYk', 'Beete Lamhe', 'The Train', 'KK', 299],
+  ['Gg6NMU4ivXM', 'Kya Mujhe Pyaar Hai', 'Woh Lamhe', 'KK', 264],
+  ['V1fbOsHBlZE', 'Haan Tu Hain', 'Jannat', 'KK', 287],
+  ['3QhajVg6SjE', 'Tu Hi Haqeeqat', 'Tum Mile', 'Javed Ali', 306],
+  ['DMLrGfMxOQA', 'I Am In Love', 'Once Upon A Time In Mumbaai', 'KK', 306],
+  ['zfABYXP_NSA', 'Sajde', 'Khatta Meetha', 'KK, Sunidhi Chauhan', 306],
+  ['RE46-BjrhNQ', 'Soniye', 'Aksar', 'KK, Sunidhi Chauhan', 295],
+  ['N57zVA-cRUM', 'Soniyo', 'Raaz 2', 'Sonu Nigam, Shreya Ghoshal', 330],
+  ['uJVmvGC7BmU', 'Zindagi Do Pal Ki', 'Kites', 'KK', 260],
+  ['RJD1fQ15I9Y', 'Khuda Jaane', 'Bachna Ae Haseeno', 'KK, Shilpa Rao', 331],
+  ['55UJumsI1m0', 'Ek Din Teri Raahon', 'Naqaab', 'Javed Ali', 292],
+  ['3O6eYd8pUM8', 'Deewana Kar Raha Hai', 'Raaz 3', 'Javed Ali', 360],
+  ['_yOrZ9dKAzI', 'Judai', 'Jannat', 'Kamran Ahmed', 303],
+  ['L0FzCiuTVEw', 'Maahi', 'Raaz 2', 'Toshi', 330],
+  ['WCTro3qabjE', 'Pee Loon', 'Once Upon A Time In Mumbaai', 'Mohit Chauhan', 306],
+];
+export const PLAYLIST_TRACKS: KKTrack[] = PLAYLIST_RECORDINGS.map(([videoId, songName, movieOrAlbum, artist, approxDurationSec], index) => {
+  const catalog = KK_TRACKS.find(track => track.songName === songName);
+  return {
+    ...(catalog ?? KK_TRACKS[index % KK_TRACKS.length]),
+    id: catalog?.id ?? videoId, videoId, songName, movieOrAlbum, artist,
+    approxDurationSec, formattedTitle: `${songName} — ${movieOrAlbum}`,
+    artworkUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    iconicLyric: catalog?.iconicLyric ?? '', lyricTranslation: catalog?.lyricTranslation ?? '',
+  };
+});
+
+const TRACK_SEARCH_ALIASES: Record<string, string[]> = {
+  'khuda-jaane': ['khuda jaane'],
+  'aankhon-mein-teri': ['aankhon mein teri', 'aankhon me teri'],
+  'zara-sa': ['zara sa'],
+  'kya-mujhe-pyaar-hai': ['kya mujhe pyaar hai', 'kya mujhe pyar hai'],
+  'dil-ibaadat': ['dil ibaadat', 'dil ibadat'],
+  'tu-hi-meri-shab-hai': ['tu hi meri shab hai'],
+  'labon-ko': ['labon ko'],
+  alvida: ['alvida'],
+  'haan-tu-hain': ['haan tu hain', 'han tu hain'],
+  yaaron: ['yaaron dosti', 'yaaron'],
+  pal: ['pyaar ke pal', 'pyar ke pal'],
+  'tadap-tadap': ['tadap tadap'],
+  'beete-lamhein': ['beete lamhein', 'beete lamhe'],
+  'sach-keh-raha-hai': ['sach keh raha hai deewana', 'sach keh raha hai'],
+  'tu-aashiqui-hai': ['tu aashiqui hai'],
+};
+
+const normalizeTrackText = (value: string) => value
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+/** Returns a catalog track only when the active YouTube title identifies it. */
+export function findCuratedTrack(rawTitle: string): KKTrack | undefined {
+  const cleanRaw = normalizeTrackText(rawTitle);
+  if (!cleanRaw) return undefined;
+
+  return KK_TRACKS.find((track) =>
+    (TRACK_SEARCH_ALIASES[track.id] ?? [track.songName]).some((alias) => cleanRaw.includes(normalizeTrackText(alias))),
+  );
+}
+
 export function formatRawYouTubeTitle(rawTitle: string, playlistIndex = 0): {
   songName: string;
   movieOrAlbum: string;
@@ -339,17 +412,13 @@ export function formatRawYouTubeTitle(rawTitle: string, playlistIndex = 0): {
     };
   }
 
-  for (const track of KK_TRACKS) {
-    const cleanRaw = rawTitle.toLowerCase();
-    const cleanSong = track.songName.toLowerCase();
-
-    if (cleanRaw.includes(cleanSong)) {
-      return {
-        songName: track.songName,
-        movieOrAlbum: track.movieOrAlbum,
-        formattedTitle: track.formattedTitle,
-      };
-    }
+  const curatedTrack = findCuratedTrack(rawTitle);
+  if (curatedTrack) {
+    return {
+      songName: curatedTrack.songName,
+      movieOrAlbum: curatedTrack.movieOrAlbum,
+      formattedTitle: curatedTrack.formattedTitle,
+    };
   }
 
   const cleaned = rawTitle
@@ -368,11 +437,13 @@ export function formatRawYouTubeTitle(rawTitle: string, playlistIndex = 0): {
     };
   }
 
-  const fallback = KK_TRACKS[playlistIndex % KK_TRACKS.length];
+  // Do not invent a different curated title for an unrecognised YouTube video.
+  // An honest raw title is always safer than attaching another song's name/lyrics.
+  const unknownTitle = cleaned || rawTitle.trim();
   return {
-    songName: fallback.songName,
-    movieOrAlbum: fallback.movieOrAlbum,
-    formattedTitle: fallback.formattedTitle,
+    songName: unknownTitle,
+    movieOrAlbum: 'YouTube playlist',
+    formattedTitle: unknownTitle,
   };
 }
 
