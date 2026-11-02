@@ -1,0 +1,389 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-lora: 'Lora', Georgia, serif;
+    --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-handwriting: 'Caveat', cursive;
+    --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --spring-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    --spring-apple: cubic-bezier(0.32, 0.72, 0, 1);
+    --dominant-track-color: #f59e0b;
+    --dominant-glow-rgb: 245, 158, 11;
+  }
+}
+
+/* Staggered Reveal Animations */
+@keyframes revealUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reveal-init {
+  opacity: 0;
+}
+
+.reveal-header {
+  animation: revealUp 0.8s var(--spring-smooth) 0.05s forwards;
+}
+
+.reveal-hero {
+  animation: revealUp 0.9s var(--spring-smooth) 0.15s forwards;
+}
+
+.reveal-marquee {
+  animation: revealUp 0.9s var(--spring-smooth) 0.25s forwards;
+}
+
+.reveal-deck {
+  animation: revealUp 1s var(--spring-smooth) 0.35s forwards;
+}
+
+.reveal-lyrics {
+  animation: revealUp 1s var(--spring-smooth) 0.5s forwards;
+}
+
+.reveal-archive {
+  animation: revealUp 1s var(--spring-smooth) 0.65s forwards;
+}
+
+/* Filmic Noise / Grain Overlay */
+.film-grain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Dark Mesh Gradient Background Animation */
+@keyframes mesh-drift-1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(60px, -40px) scale(1.1);
+  }
+  66% {
+    transform: translate(-40px, 50px) scale(0.95);
+  }
+}
+
+@keyframes mesh-drift-2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-50px, 40px) scale(1.08);
+  }
+  66% {
+    transform: translate(50px, -30px) scale(0.92);
+  }
+}
+
+@keyframes mesh-drift-3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(30px, 60px) scale(1.15);
+  }
+}
+
+.animate-mesh-1 {
+  animation: mesh-drift-1 22s ease-in-out infinite;
+}
+
+.animate-mesh-2 {
+  animation: mesh-drift-2 26s ease-in-out infinite;
+}
+
+.animate-mesh-3 {
+  animation: mesh-drift-3 18s ease-in-out infinite;
+}
+
+/* Breathing Dynamic Island Ambient Aura with 1.5s smooth crossfade */
+@keyframes island-breathing-aura {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.98);
+    filter: blur(45px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+    filter: blur(65px);
+  }
+}
+
+.animate-island-aura {
+  animation: island-breathing-aura 3.6s ease-in-out infinite;
+}
+
+/* Live Equalizer Bars Keyframes */
+@keyframes eq-bar-1 {
+  0%, 100% { height: 4px; }
+  25% { height: 18px; }
+  50% { height: 7px; }
+  75% { height: 21px; }
+}
+
+@keyframes eq-bar-2 {
+  0%, 100% { height: 15px; }
+  25% { height: 5px; }
+  50% { height: 22px; }
+  75% { height: 11px; }
+}
+
+@keyframes eq-bar-3 {
+  0%, 100% { height: 8px; }
+  25% { height: 23px; }
+  50% { height: 4px; }
+  75% { height: 16px; }
+}
+
+@keyframes eq-bar-4 {
+  0%, 100% { height: 17px; }
+  25% { height: 9px; }
+  50% { height: 24px; }
+  75% { height: 6px; }
+}
+
+.animate-eq-1 {
+  animation: eq-bar-1 0.44s ease-in-out infinite;
+}
+
+.animate-eq-2 {
+  animation: eq-bar-2 0.56s ease-in-out infinite;
+}
+
+.animate-eq-3 {
+  animation: eq-bar-3 0.36s ease-in-out infinite;
+}
+
+.animate-eq-4 {
+  animation: eq-bar-4 0.5s ease-in-out infinite;
+}
+
+/* SaaS-Grade Glassmorphism Tooltip */
+.saas-tooltip {
+  background: rgba(18, 18, 24, 0.92);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Minimalist Vinyl Spin */
+@keyframes spin-vinyl-smooth {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-vinyl {
+  animation: spin-vinyl-smooth 4s linear infinite;
+}
+
+/* Typography Classes */
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+.font-poetry {
+  font-family: var(--font-lora);
+}
+
+.font-clean {
+  font-family: var(--font-sans);
+}
+
+.font-counter {
+  font-family: var(--font-mono);
+}
+
+.font-note {
+  font-family: var(--font-handwriting);
+}
+
+/* Ultra-Premium Multi-Layered Glass for Dynamic Island */
+.dynamic-island-glass {
+  background: rgba(10, 10, 12, 0.55);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(245, 158, 11, 0.12);
+}
+
+.console-surface {
+  background: rgba(13, 13, 17, 0.65);
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Apple Music Flagship Glassmorphic Full-Viewport Overlay */
+.apple-glass-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(80px) saturate(250%);
+  -webkit-backdrop-filter: blur(80px) saturate(250%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Spatial Hero Canvas Spring Physics */
+.hero-spatial-canvas {
+  transition: transform 0.7s var(--spring-apple), filter 0.7s var(--spring-apple), opacity 0.6s ease;
+  will-change: transform, filter, opacity;
+  transform-style: preserve-3d;
+}
+
+.lyrics-spring-slide {
+  transition: transform 0.65s var(--spring-apple), opacity 0.4s ease;
+  will-change: transform, opacity;
+}
+
+/* Apple-Grade Lyrics Depth-of-Field Typography */
+.apple-lyric-line {
+  transition: transform 0.35s var(--spring-apple), opacity 0.35s ease, filter 0.35s ease, text-shadow 0.35s ease;
+  will-change: transform, opacity, filter;
+}
+
+.apple-lyric-active {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  transform: scale(1.02);
+  filter: blur(0px) !important;
+  -webkit-filter: blur(0px) !important;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.65), 0 0 45px rgba(245, 158, 11, 0.35);
+}
+
+.apple-lyric-inactive {
+  opacity: 0.25;
+  filter: blur(1.5px);
+  -webkit-filter: blur(1.5px);
+  transform: scale(0.96);
+}
+
+.apple-lyric-inactive:hover {
+  opacity: 0.65;
+  filter: blur(0.5px);
+  -webkit-filter: blur(0.5px);
+  transform: scale(0.98);
+}
+
+/* Masked Edge Fades for Apple Music Style Teleprompter */
+.mask-fade-edges {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 16%,
+    black 84%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 16%,
+    black 84%,
+    transparent 100%
+  );
+}
+
+.scroll-spring {
+  scroll-behavior: smooth;
+}
+
+/* Dribbble-Grade Floating Widget Glass & Scrubber */
+.floating-widget-glass {
+  background: rgba(10, 10, 15, 0.75);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.dribbble-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+}
+
+.dribbble-scrubber::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: height 0.2s ease;
+}
+
+.dribbble-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 1), 0 0 2px #ffffff;
+  margin-top: -3px;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s ease, transform 0.2s var(--spring-bounce), box-shadow 0.2s ease;
+}
+
+.group:hover .dribbble-scrubber::-webkit-slider-thumb,
+.dribbble-scrubber:hover::-webkit-slider-thumb,
+.dribbble-scrubber:active::-webkit-slider-thumb {
+  opacity: 1;
+  transform: scale(1.1);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 1), 0 0 4px #ffffff;
+}
+
+.dribbble-scrubber::-moz-range-track {
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dribbble-scrubber::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  border: none;
+  background-color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 1);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s ease, transform 0.2s var(--spring-bounce);
+}
+
+.group:hover .dribbble-scrubber::-moz-range-thumb,
+.dribbble-scrubber:hover::-moz-range-thumb {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Spring interactive button snap */
+.spring-tap {
+  transition: transform 0.2s var(--spring-bounce), box-shadow 0.2s ease;
+}
+
+.spring-tap:active {
+  transform: scale(0.92);
+}

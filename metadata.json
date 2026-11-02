@@ -1,0 +1,8 @@
+{
+  "name": "KK FAN's Corner",
+  "description": "A nostalgic tribute to KK with a retro Walkman cassette player, school farewell memories, interactive Web Audio mechanical sounds, and curated YouTube playlist.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
